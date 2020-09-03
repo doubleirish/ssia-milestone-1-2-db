@@ -1,0 +1,323 @@
+{
+	"info": {
+		"_postman_id": "b59aad57-dd96-4cc3-8282-cca7981a6aae",
+		"name": "ssia milestone 1.1",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "/alive authenticated 200",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4e4802fd-c5e8-404e-834b-fbc926effcd5",
+						"exec": [
+							"",
+							"pm.test(\"Expecting Status code of 200, was \"+ pm.response.code, function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							" "
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "12345",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "john",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "localhost:8080/alive",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"alive"
+					]
+				},
+				"description": "The client requests an authorization token on behalf of a user "
+			},
+			"response": []
+		},
+		{
+			"name": "/alive bad creds 401",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "4fcb8140-9203-41ac-9e79-78fdeea3fff3",
+						"exec": [
+							"",
+							"pm.test(\"Expecting Status code of 200, was \"+ pm.response.code, function () {",
+							"    pm.response.to.have.status(401);",
+							"});",
+							" "
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "badpass",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "baduser",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "localhost:8080/alive",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"alive"
+					]
+				},
+				"description": "The client requests an authorization token on behalf of a user "
+			},
+			"response": []
+		},
+		{
+			"name": "access-token-password-grant",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "d37028f4-9f7c-47b4-9d0d-578251dc27b2",
+						"exec": [
+							"",
+							"pm.test(\"Expecting Status code of 200, was \"+ pm.response.code, function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"save tokens\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    console.log(\"Saving access token in response to 'token' environmental variable: \" + jsonData.access_token)",
+							"    pm.environment.set(\"access_token\", jsonData.access_token);",
+							"    pm.environment.set(\"refresh_token\", jsonData.refresh_token);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "secret",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "client",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "localhost:8080/oauth/token?grant_type=password&username=john&password=12345&scope=read",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"oauth",
+						"token"
+					],
+					"query": [
+						{
+							"key": "grant_type",
+							"value": "password"
+						},
+						{
+							"key": "username",
+							"value": "john"
+						},
+						{
+							"key": "password",
+							"value": "12345"
+						},
+						{
+							"key": "scope",
+							"value": "read"
+						}
+					]
+				},
+				"description": "The client requests an authorization token on behalf of a user "
+			},
+			"response": []
+		},
+		{
+			"name": "check-token (not working)",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "secret",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "client",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					}
+				],
+				"url": {
+					"raw": "localhost:8080/oauth/check_token?token={{access_token}}",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"oauth",
+						"check_token"
+					],
+					"query": [
+						{
+							"key": "token",
+							"value": "{{access_token}}"
+						}
+					]
+				},
+				"description": "The client requests an authorization token on behalf of a user "
+			},
+			"response": []
+		},
+		{
+			"name": "refresh-token (not working)",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "secret",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "client",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "localhost:8080/oauth/token?grant_type=refresh_token&refresh_token={{refresh_token}}",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"oauth",
+						"token"
+					],
+					"query": [
+						{
+							"key": "grant_type",
+							"value": "refresh_token"
+						},
+						{
+							"key": "refresh_token",
+							"value": "{{refresh_token}}"
+						}
+					]
+				},
+				"description": "The client requests an authorization token on behalf of a user "
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "4ff719a4-7a27-4f27-8142-b5e495b694b5",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "645aab3b-f1e3-4c0b-bc2b-535551cb0b79",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"protocolProfileBehavior": {}
+}

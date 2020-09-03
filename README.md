@@ -1,67 +1,22 @@
-#### SSIA Live Project Milestone 1.1 
-Build an Oauth Server that supplies JWT tokens using in-memory userDetails and ClientDetails  services
-### Table of contents
-- [SSIA Live Project Milestone 1.1](#ssia-live-project-milestone-11)
-  * [Suggested  recommended reading list](#suggested--recommended-reading-list)
-- [OAuth Server project Setup](#oauth-server-project-setup)
-  * [Spring initalizer options](#spring-initalizer-options)
-  * [Create the configuration class to enable an oauth server](#create-the-configuration-class-to-enable-an-oauth-server)
-  * [run app and verify new /oauth/* endpoints are available](#run-app-and-verify-new--oauth---endpoints-are-available)
-  * [create a simple "alive" controller for testing purposes](#create-a-simple--alive--controller-for-testing-purposes)
-  * [verify access to alive-controller returns "alive!"](#verify-access-to-alive-controller-returns--alive--)
-  * [Add a Config class to require authenticated users](#add-a-config-class-to-require-authenticated-users)
-  * [verify access to alive-controller without creds fails with 401](#verify-access-to-alive-controller-without-creds-fails-with-401)
-  * [verify access to alive-controller with good user creds is sucessful](#verify-access-to-alive-controller-with-good-user-creds-is-sucessful)
-- [setup userDetailsService](#setup-userdetailsservice)
-  * [replace the default security with an in-memory userdetails service](#replace-the-default-security-with-an-in-memory-userdetails-service)
-  * [override password encoder with no-op password encoder](#override-password-encoder-with-no-op-password-encoder)
-  * [test access to /alive with bad credentials](#test-access-to--alive-with-bad-credentials)
-  * [test access to /alive with good credentials](#test-access-to--alive-with-good-credentials)
-  * [add a test of authentiation using the userDetailsService](#add-a-test-of-authentiation-using-the-userdetailsservice)
-  * [add in-memory client details service](#add-in-memory-client-details-service)
-- [setup clientDetails service](#setup-clientdetails-service)
-  * [register the authentication manager in the authorization server](#register-the-authentication-manager-in-the-authorization-server)
-  * [generate a token using  the password grant](#generate-a-token-using--the-password-grant)
-  * [Create a postman test to verify password grant request](#create-a-postman-test-to-verify-password-grant-request)
-  * [use postman to extract tokens for subsequent postman request](#use-postman-to-extract-tokens-for-subsequent-postman-request)
-  * [enable symetric key JWT - see section 15.1.2](#enable-symetric-key-jwt---see-section-1512)
-  * [add a symetric key value](#add-a-symetric-key-value)
-  * [try the password grant again to see if you get a JWT token](#try-the-password-grant-again-to-see-if-you-get-a-jwt-token)
-- [create  Asymmetric keys using keytool section 15.2.1](#create--asymmetric-keys-using-keytool-section-1521)
-  * [replace Jwt Converter with  asymmetric implementation section 15.2.2](#replace-jwt-converter-with--asymmetric-implementation-section-1522)
-  * [try the password grant again to see if you get a aymetric key JWT token](#try-the-password-grant-again-to-see-if-you-get-a-aymetric-key-jwt-token)
-  * [TODO craft an oauth refresh_token grant curl/postman request](#todo-craft-an-oauth-refresh-token-grant-curl-postman-request)
-  * [TODO craft a  /oauth/check_token curl/postman  request](#todo-craft-a---oauth-check-token-curl-postman--request)
-
-<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
-
+#### SSIA Live Project Milestone 1.2
+Build an Oauth Server - replace in-memory backing for userDetails and ClientDetails  services with a DB backend
+# 
  
 ##### Suggested  recommended reading list 
-1. SSIA 1.5 OAuth overview
-1. SSIA Chapter 2  Intro to Spring Security
-1. SSIA Section 4.1.2 Noop password encoder
-1. SSIA Chapter 13 - Implementing OAuth2 server
-1. SSIA Chapter 15 - JWT
-1. SSIA Chapter 20 Testing
+ 
+1. SSIA Chapter 3  User Details Service
+ 
 
-Also useful
- - spring initializer - https://livebook.manning.com/book/spring-in-action-sixth-edition/chapter-1/v-2/30  
- - Spring Controllers - https://livebook.manning.com/book/spring-in-action-fifth-edition/chapter-6/20
- for MockMvc see https://livebook.manning.com/book/spring-security-in-action/chapter-20/v-7/47
+Also useful (JPA)
+ - JPA
 
 It's also probably ok to push Chapter 3 as recommended reading until Milestone 1.2 
 
 
 
-#### OAuth Server project Setup
+#### OAuth Server project Setup part 2 JPA
 
-##### Spring initalizer options
- see https://livebook.manning.com/book/spring-in-action-sixth-edition/chapter-1/v-2/30  
-    
--    web - spring-web
--    security - spring security
--    spring-cloud-security - oauth2 security 
-
+#####  Add JPA dependency
 
 
 ##### Create the configuration class to enable an oauth server
