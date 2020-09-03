@@ -16,179 +16,424 @@ It's also probably ok to push Chapter 3 as recommended reading until Milestone 1
 
 #### OAuth Server project Setup part 2 JPA
 
-#####  Add JPA dependency
-
-
-##### Create the configuration class to enable an oauth server
-see https://livebook.manning.com/book/spring-security-in-action/chapter-13/v-7/
+#####  Add H2 and JPA dependencies to pom.xml
 ```
-@Configuration
-@EnableAuthorizationServer
-public class OAuthConfig extends AuthorizationServerConfigurerAdapter {
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-data-jpa</artifactId>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <scope>runtime</scope>
+            </dependency>
+```
+
+##### Define sc user service 
+Under src/main/resources add a schema.sql file
+and define the SQL Tables 
+to store user information and the zero or more authorities they have.
+```
+drop table if exists AUTHORITY;
+drop table if exists USER; 
+
+create table if not exists USER
+(
+    ID INT auto_increment primary key,
+    USERNAME VARCHAR(50) not null,
+    PASSWORD VARCHAR(255) not null
+);
+
+create table  if not exists AUTHORITY
+(
+    ID INT auto_increment primary key,
+    USER_ID INT not null,
+    AUTHORITY VARCHAR(50) not null,
+    constraint AUTHORITY_USER_USERNAME_FK
+        foreign key (USER_ID) references USER (ID)
+);
+```
+
+##### set up H2 datasource in application.properties
+```
+# setup H2 datasource
+spring.datasource.url=jdbc:h2:mem:oauth
+spring.datasource.username=admin
+spring.datasource.password=admin
+spring.datasource.driverClassName=org.h2.Driver
+# "always" is not something we would normally use for production .
+spring.datasource.initialization-mode=always
+
+
+# for development only, can verify schema is generated and populated
+# http://localhost:8080/h2-console
+spring.h2.console.enabled=true
+```
+##### verify the schema is created at application startup
+- run the app 
+- connect to http://localhost:8080/h2-console
+- We required that all endpoints be authenticated,  so you'll need to enter a users credentials in the login form that appears
+ e.g user=john and password=12345
+- in the  H2 admin console populate the password field with  "admin" and press connect 
+- some browsers may complain about opening the H2 console that has Iframes 
+- you can open up the left  nav frame in a new window and you should see the USER and AUTHORITY tables defined
+
+##### add some data into the USER and AUTHORITY tables
+under src/main/resources add a data.sql file 
+Add some entries to your USER and AUTHORITY tables to help populate the H2 in-memory DB with some initial data at application startup time
+```
+insert into USER (ID, USERNAME, PASSWORD) values (1, 'john' ,'12345);
+insert into USER (ID, USERNAME, PASSWORD) values (2, 'admin' ,'swordfish');
+INSERT INTO AUTHORITY ( USER_ID ,AUTHORITY ) values (1, 'ROLE_USER');
+INSERT INTO AUTHORITY ( USER_ID ,AUTHORITY ) values (2, 'ROLE_ADMIN');
+```
+##### verify USER table is populated with some data 
+start the app and connect to H2 console as before. 
+in the top nav window enter the following sql and clinck the "RUN" button
+```
+select * from USER;
+```
+you should see your two entries for john and admin
+
+##### Create a JPA entity for your USER table
+- We can use the Lombok @Data annotation to avoid adding setters and getters
+- don't worry about the authorities child collection just yet, we'll come back to that later 
+- the ```@Id   @GeneratedValue(strategy=GenerationType.IDENTITY)```  annotation indicates primary key IDs should be auto generated
+```
+@Data
+@Entity
+public class User {
+
+    @Id
+    @GeneratedValue(strategy= GenerationType.IDENTITY)
+    private int id;
+    private String username;
+    private String password;
+
+    
+    public User() {
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+               
+                '}';
+    }
 }
 ```
 
-##### run app and verify new /oauth/* endpoints are available
-it easiest to just run inside your IDE. but you can use ```mvn spring-boot:run```
-
-##### create a simple "alive" controller for testing purposes
-see https://livebook.manning.com/book/spring-in-action-fifth-edition/chapter-6/20
+##### create a User JPA Repository  interface
 ```
-@RestController
-@RequestMapping(path = "/alive") 
-public class AliveController {
-    @GetMapping
-    public String alive() {   return "healthy!";   }
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UserRepository   extends JpaRepository<User, Integer> {
+  User findByUsername(String name);
+ }
+```
+
+
+##### create a JPA test class to test your User repository 
+
+```
+@DataJpaTest
+@TestPropertySource(properties = {
+        "spring.jpa.hibernate.ddl-auto=validate"
+})
+public class UserRepositoryTest {
+
+    @Autowired
+    private DataSource dataSource;
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private EntityManager entityManager;
+    @Autowired
+    private UserRepository userRepository;
+
+    @Test
+    void injectedComponentsAreNotNull() {
+        assertThat(dataSource).isNotNull();
+        assertThat(jdbcTemplate).isNotNull();
+        assertThat(entityManager).isNotNull();
+        assertThat(userRepository).isNotNull();
+    }
+
+    @Test
+    void findByUsername() {
+        User user = userRepository.findByUsername("john");
+        assertThat(user.getUsername()).isEqualTo("john");
+    }
 }
 ```
-##### verify access to alive-controller returns "alive!"
+both tests should succeed 
+##### Create an Authority JPA Entity for the AUTHORITY Table 
+- The Authority entity has many-to-one relationship with the User entity 
+- and the authority's USER_ID column is the foreign key we use to  point back to the parent table
+- it's a good idea to override the lombok toString() to prevent circular references when printing
 ```
-curl http://localhost:8080/alive
--> returns status 200 and "alive" text
+@Data
+@Entity
+public class Authority {
+    @Id
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    private int id;
+    private String authority;
+
+    
+    @ManyToOne
+    @JoinColumn(name = "USER_ID", nullable = false)
+    private User user ;
+
+    public Authority() {
+    }
+
+    public Authority(String authority, User user) {
+        this.authority=authority;
+        this.user=user;
+    }
+
+    @Override
+    public String toString() {
+        return "Authority{" +
+                "id=" + id +
+                ", authority='" + authority + '\'' +
+                '}';
+    }
+}
 ```
 
-##### Add a Config class to require authenticated users 
-https://livebook.manning.com/book/spring-security-in-action/chapter-2/v-7/17
-https://livebook.manning.com/book/spring-security-in-action/chapter-2/v-7/160
+##### update the User Entity to include a collection of the authories it owns 
+- The mappedBy value of "user" defines the field in the Authority class which is used to map back to the User Class
+- you may also update the toString() to include the authorities field
+```
+  @Entity
+  public class User {  
+
+   ...   
+  
+      @OneToMany(mappedBy = "user", cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
+      private List<com.manning.ssia.ssiamilestone.jpa.Authority> authorities;
+
+```
+##### Update your UserRepositoryTesT   class to verify that the user "john" has an Authority populated
+```
+ @Test
+    void johnUserhasAtLeastOneAuthority() {
+        User user = userRepository.findByUsername("john");
+        assertThat(user.getAuthorities()).isNotEmpty();
+    }
+```
+##### create a UserDetailsService (replaces in-memory equivalent)
+- re-pruprosing the JPA User entity to implement the UserDetails interface is usually more trouble than it's ever worth
+- instead create your own custom class inplementing the UserDetails interface which can work with our JPA User entity
+```
+public class CustomUserDetails  implements UserDetails {
+        private User user;  //our JPA entity
+
+        public CustomUserDetails(User user) {
+            this.user = user;
+        }
+        
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return user.getAuthorities().stream()
+                .map(Authority::getAuthority)
+                .map(role -> new SimpleGrantedAuthority(role))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public String getPassword() {
+        return user.getPassword();
+    }
+
+    @Override
+    public String getUsername() {
+        return user.getUsername();
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    @Override
+    public String toString() {
+        return "CustomUserDetails{" +
+                "username=" + user.getUsername() +
+                "authorities=" + this.getAuthorities()  +
+                '}';
+    }
+}
+```
+##### create a UserDetailsService (replaces in-memory equivalent)
+create your own JPA backed implementation of the UserDetailsService
+```
+@Slf4j
+@Service
+public class JpaUserDetailsService implements UserDetailsService {
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Override
+    public UserDetails loadUserByUsername(String username) {
+        log.info("looking up user {}", username);
+        User user = userRepository.findByUsername(username);
+        if (user == null) {  //TODO use Optional ?
+            log.error("did not find user {}", username);
+            throw new UsernameNotFoundException(username);
+        }
+        com.manning.ssia.ssiamilestone.security.CustomUserDetails userDetails = new com.manning.ssia.ssiamilestone.security.CustomUserDetails(user);
+        log.info("found userdetails {}", userDetails);
+        return userDetails;
+    }
+}
+```
+
+##### Add some JPA properties to application.properties
+- JPA can also create the DB schema at start up. 
+- you'll want to disable that as it will conflict with your schema.sql
+```
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=none
+```
+##### create a test for your new JpaUserDetailsService
+ 
+```
+@SpringBootTest
+class JpaUserDetailsServiceTest {
+
+    @Resource(name = "jpaUserDetailsService")
+    private JpaUserDetailsService userDetailsService;
+
+    @Test
+    void loadUserByUsernameJohnIsFound() {
+        UserDetails userDetails = userDetailsService.loadUserByUsername("john");
+        assertThat(userDetails.getUsername()).isEqualTo("john");
+        assertThat(userDetails.isEnabled()).isTrue();
+    }
+}
+```
+
+##### replace the in-memory user details service with your new JPA backed userDetailsService
+- find the java configuration class where you defined a userDetailsService bean and delete it.
+- Your new JpaUserDetailsService will automatically be detected and used
+```
+// DELETE the following config bean
+@Override
+    @Bean
+    public UserDetailsService userDetailsService() {
+        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
+      
+```
+
+##### re-run all your unit tests
+- UserController
+  UserDtoUserController
+         UserDto
+- you should also be able to connect to the http://localhost:8080/alive endpoint using the same john:12345 credentials you used with the in-memory service
+ 
+
+##### Troubleshooting
+if you've haing problems authenticating usin yoour new JPA userdetailsService then I recommend temporarily enabling
+debug in the @EnableWebSecurity annotation e.g 
 ```
 @Configuration
 @EnableWebSecurity(debug = true)
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
-    
-    @Override
-    protected void configure(HttpSecurity http) throws Exception {
-        http.csrf().disable();
-        http
-                .authorizeRequests()
-                .anyRequest()
-                .authenticated()
-                .and()
-                .httpBasic()
-        ;
+
+```
+you can also enable debug logging in your application.properties
+```
+logging.level.org.springframework.security=debug
+```
+#### Creatings a /users REST endpoint
+
+##### Create a UserDto object that the controller will return 
+I find it's best not to return JPA entity objects ina REST Controller but instead map them to a simple DTO
+```
+@Data
+@NoArgsConstructor
+public class UserDto {
+    private int id;
+    private String username;
+    private String password; // this can be removed after debugging
+    private List<String> authorities;
+
+    UserDto(User user) {
+        this.id = user.getId();
+        this.username = user.getUsername();
+        this.password = user.getPassword();
+        this.authorities = user.getAuthorities()
+                .stream()
+                .map(Authority::getAuthority)
+                .collect(Collectors.toList());
     }
+}
 ```
 
-##### verify access to alive-controller without creds fails with 401
-```
-curl http://localhost:8080/alive
--> returns status 401 unauthorized
+##### create a REST Contoller for the /users endpoint
+ UserController
 ```
 
-
-##### verify access to alive-controller with good user creds is sucessful
-see https://livebook.manning.com/book/spring-security-in-action/chapter-2/v-7/35
-```
-# search the logs for the password with the log line begining with "Using generated security password:" 
-curl -u user:380ec167-9b45-4644-952d-cb93331bb3e5 http://localhost:8080/alive
--> returns status 200 and "alive" text
-```
-#### setup userDetailsService
-see https://livebook.manning.com/book/spring-security-in-action/chapter-2/v-7/110
-##### replace the default security with an in-memory userdetails service 
-```
-@Configuration
-public class ProjectConfig {
-    @Bean
-    public UserDetailsService userDetailsService() {
-        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
-        UserDetails john = User.withUsername("john")
-                .password("12345")
-                .authorities("ROLE_USER")
-                .build();
-        userDetailsService.createUser(john);
-        return userDetailsService;
-    }
-```
-
-##### override password encoder with no-op password encoder
-see https://livebook.manning.com/book/spring-security-in-action/chapter-4/v-7/33
-```
-  @Bean
-    public PasswordEncoder passwordEncoder() {
-        return NoOpPasswordEncoder.getInstance();
-    }
-```
-##### test access to /alive with bad credentials
-```
-curl -I -u john:badpass http://localhost:8080/alive
--- returns 401
-```
-##### test access to /alive with good credentials
-```
-curl -I -u john:12345 http://localhost:8080/alive
--- returns 200
-```
-
-##### add a test of authentiation using the userDetailsService 
-for TestRestTemplate see https://livebook.manning.com/book/cloud-native-spring-in-action/chapter-3/v-1/185
-
-for MockMvc see https://livebook.manning.com/book/spring-security-in-action/chapter-20/v-7/47
-
-```
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @Slf4j
-public class AliveControllerTest {
-    @LocalServerPort
-    private int port;
+@RestController
+@RequestMapping(path = "/users", produces = "application/json")
+@CrossOrigin(origins = "*")
+public class UserController {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
     @Autowired
-    private TestRestTemplate restTemplate;
-
-    @Test
-    public void alive_authorized() throws Exception {
-        String jsonStr = this.restTemplate
-                .withBasicAuth("john", "12345")
-                .getForObject("http://localhost:" + port + "/alive", String.class);
-        assertThat(jsonStr).contains("healthy!");
+    public UserController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+          this.passwordEncoder =  passwordEncoder;
     }
-```
 
-##### add in-memory client details service
-see  https://livebook.manning.com/book/spring-security-in-action/chapter-13/v-7/44
-```
-public class OAuthConfig extends AuthorizationServerConfigurerAdapter {
-    @Override
-    public void configure(  ClientDetailsServiceConfigurer clients)
-            throws Exception {
-        clients.inMemory()
-                .withClient("client")
-                .secret("secret")
-                .authorizedGrantTypes("password","authorization_code","client_credentials","refresh_token")
-                .scopes("read");
+    @GetMapping
+    public Iterable<UserDto> listUsers() {
+
+        log.debug("user repo is size " + userRepository.count());
+        //userRepo.findAll().forEach(t->log.debug("found user "+t));
+
+        PageRequest page = PageRequest.of(
+                0, 12, Sort.by("username").ascending());
+
+        return userRepository
+                .findAll(page)
+                .getContent()
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
-```
-
-#### setup clientDetails service
- 
-
-##### register the authentication manager in the authorization server
-
-see https://livebook.manning.com/book/spring-security-in-action/chapter-13/v-7/30
-```
-public class AuthServerConfig
-  extends AuthorizationServerConfigurerAdapter {
- 
- 
-  @Autowired
-  private AuthenticationManager authenticationManager;
- 
-  @Override
-  public void configure(
-    AuthorizationServerEndpointsConfigurer endpoints) {
-      endpoints.authenticationManager(authenticationManager);
-  }
-```
-
-##### generate a token using  the password grant
-Another option is to create these "curl" statements using postman.
-After you construct a working postman request just click on the "code" link thats  to the right of the "Params", "Auth" and "Headers" tab
-
-see https://learning.postman.com/docs/getting-started/introduction/
-```
-curl --location -u client:secret \
---request POST 'localhost:8080/oauth/token?grant_type=password&username=john&password=12345&scope=read' \
---header 'Content-Type: application/json'  
+    private UserDto convertToDto(User user) {
+        return new UserDto(user);
+    }
+}
 ``` 
-you should see a response body similar to
+after restarting the app you should be able to connect to http://localhost:8080/users/ and see all the users
 ```
 {
 "access_token":"47da9aac-f6f3-4ad1-a7b3-35fb7065e1e4",

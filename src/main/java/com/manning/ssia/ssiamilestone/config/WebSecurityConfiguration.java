@@ -16,7 +16,7 @@ import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 //
 // @Order(-5001)
 @Configuration
-@EnableWebSecurity(debug = false)
+@EnableWebSecurity(debug = true)
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
 
@@ -27,17 +27,7 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
     }
 
 
-    @Override
-    @Bean
-    public UserDetailsService userDetailsService() {
-        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
-        UserDetails john = User.withUsername("john")
-                .password("12345")
-                .authorities("ROLE_USER")
-                .build();
-        userDetailsService.createUser(john);
-        return userDetailsService;
-    }
+
 
 
 
