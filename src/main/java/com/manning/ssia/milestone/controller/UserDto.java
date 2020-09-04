@@ -1,7 +1,7 @@
-package com.manning.ssia.ssiamilestone.web;
+package com.manning.ssia.milestone.controller;
 
-import com.manning.ssia.ssiamilestone.jpa.Authority;
-import com.manning.ssia.ssiamilestone.jpa.User;
+import com.manning.ssia.milestone.jpa.Authority;
+import com.manning.ssia.milestone.jpa.User;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 

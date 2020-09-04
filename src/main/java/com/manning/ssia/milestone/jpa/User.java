@@ -1,4 +1,4 @@
-package com.manning.ssia.ssiamilestone.jpa;
+package com.manning.ssia.milestone.jpa;
 
 import lombok.Data;
 
@@ -16,7 +16,7 @@ public class User {
     private String password;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
-    private List<com.manning.ssia.ssiamilestone.jpa.Authority> authorities;
+    private List<com.manning.ssia.milestone.jpa.Authority> authorities;
 
     public User() {
     }

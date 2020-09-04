@@ -1,4 +1,4 @@
-package com.manning.ssia.ssiamilestone.config;
+package com.manning.ssia.milestone.config;
 
 import org.springframework.context.annotation.Configuration;
 

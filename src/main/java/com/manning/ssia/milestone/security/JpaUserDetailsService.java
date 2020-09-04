@@ -1,7 +1,7 @@
-package com.manning.ssia.ssiamilestone.security;
+package com.manning.ssia.milestone.security;
 
-import com.manning.ssia.ssiamilestone.jpa.User;
-import com.manning.ssia.ssiamilestone.jpa.UserRepository;
+import com.manning.ssia.milestone.jpa.User;
+import com.manning.ssia.milestone.jpa.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,7 +24,7 @@ public class JpaUserDetailsService implements UserDetailsService {
             log.error("did not find user {}", username);
             throw new UsernameNotFoundException(username);
         }
-        com.manning.ssia.ssiamilestone.security.CustomUserDetails userDetails = new com.manning.ssia.ssiamilestone.security.CustomUserDetails(user);
+        com.manning.ssia.milestone.security.CustomUserDetails userDetails = new com.manning.ssia.milestone.security.CustomUserDetails(user);
         log.info("found userdetails {}", userDetails);
         return userDetails;
     }

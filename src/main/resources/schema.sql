@@ -1,5 +1,6 @@
 drop table if exists AUTHORITY;
 drop table if exists USER;
+
 drop table if exists GRANT;
 drop table if exists CLIENT;
 

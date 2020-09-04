@@ -1,4 +1,4 @@
-package com.manning.ssia.ssiamilestone.jpa;
+package com.manning.ssia.milestone.jpa;
 
 import lombok.Data;
 import org.codehaus.jackson.annotate.JsonIgnore;

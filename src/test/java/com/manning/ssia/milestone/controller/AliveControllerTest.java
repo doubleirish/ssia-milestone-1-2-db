@@ -1,4 +1,4 @@
-package com.manning.ssia.ssiamilestone.controller;
+package com.manning.ssia.milestone.controller;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;

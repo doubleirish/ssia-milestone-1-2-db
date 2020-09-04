@@ -1,17 +1,17 @@
 #### SSIA Live Project Milestone 1.2
-Build an Oauth Server - replace in-memory backing for userDetails and ClientDetails  services with a DB backend
-# 
+Build an Oauth Server part 2    create JPA repositories  and REST controllers for storing and retrieving Users and Clients  </description>
+
+
  
 ##### Suggested  recommended reading list 
  
-1. SSIA Chapter 3  User Details Service
+1. SSIA Chapter 3  
  
 
 Also useful (JPA)
  - JPA
 
-It's also probably ok to push Chapter 3 as recommended reading until Milestone 1.2 
-
+ 
 
 
 #### OAuth Server project Setup part 2 JPA
@@ -31,10 +31,12 @@ It's also probably ok to push Chapter 3 as recommended reading until Milestone 1
             </dependency>
 ```
 
-##### Define sc user service 
+## Setup a DB Backed UserDetailsService 
+##### Define USER and AUTHORITY tables
+ 
 Under src/main/resources add a schema.sql file
 and define the SQL Tables 
-to store user information and the zero or more authorities they have.
+to store the user's credentials and the zero or more authorities they have.
 ```
 drop table if exists AUTHORITY;
 drop table if exists USER; 
@@ -218,7 +220,7 @@ public class Authority {
    ...   
   
       @OneToMany(mappedBy = "user", cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
-      private List<com.manning.ssia.ssiamilestone.jpa.Authority> authorities;
+      private List<com.manning.ssia.milestone.jpa.Authority> authorities;
 
 ```
 ##### Update your UserRepositoryTesT   class to verify that the user "john" has an Authority populated
@@ -305,7 +307,7 @@ public class JpaUserDetailsService implements UserDetailsService {
             log.error("did not find user {}", username);
             throw new UsernameNotFoundException(username);
         }
-        com.manning.ssia.ssiamilestone.security.CustomUserDetails userDetails = new com.manning.ssia.ssiamilestone.security.CustomUserDetails(user);
+        com.manning.ssia.milestone.security.CustomUserDetails userDetails = new com.manning.ssia.milestone.security.CustomUserDetails(user);
         log.info("found userdetails {}", userDetails);
         return userDetails;
     }
@@ -319,56 +321,7 @@ public class JpaUserDetailsService implements UserDetailsService {
 spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
 spring.jpa.hibernate.ddl-auto=none
 ```
-##### create a test for your new JpaUserDetailsService
- 
-```
-@SpringBootTest
-class JpaUserDetailsServiceTest {
 
-    @Resource(name = "jpaUserDetailsService")
-    private JpaUserDetailsService userDetailsService;
-
-    @Test
-    void loadUserByUsernameJohnIsFound() {
-        UserDetails userDetails = userDetailsService.loadUserByUsername("john");
-        assertThat(userDetails.getUsername()).isEqualTo("john");
-        assertThat(userDetails.isEnabled()).isTrue();
-    }
-}
-```
-
-##### replace the in-memory user details service with your new JPA backed userDetailsService
-- find the java configuration class where you defined a userDetailsService bean and delete it.
-- Your new JpaUserDetailsService will automatically be detected and used
-```
-// DELETE the following config bean
-@Override
-    @Bean
-    public UserDetailsService userDetailsService() {
-        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
-      
-```
-
-##### re-run all your unit tests
-- UserController
-  UserDtoUserController
-         UserDto
-- you should also be able to connect to the http://localhost:8080/alive endpoint using the same john:12345 credentials you used with the in-memory service
- 
-
-##### Troubleshooting
-if you've haing problems authenticating usin yoour new JPA userdetailsService then I recommend temporarily enabling
-debug in the @EnableWebSecurity annotation e.g 
-```
-@Configuration
-@EnableWebSecurity(debug = true)
-public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
-
-```
-you can also enable debug logging in your application.properties
-```
-logging.level.org.springframework.security=debug
-```
 #### Creatings a /users REST endpoint
 
 ##### Create a UserDto object that the controller will return 
@@ -433,127 +386,192 @@ public class UserController {
     }
 }
 ``` 
-after restarting the app you should be able to connect to http://localhost:8080/users/ and see all the users
+After restarting the app you should be able to connect to http://localhost:8080/users/ and see all the users
 ```
-{
-"access_token":"47da9aac-f6f3-4ad1-a7b3-35fb7065e1e4",
-"token_type":"bearer",
-"refresh_token":"19004b27-1f3f-4d31-a897-7f500da06186",
-"expires_in":42910,
-"scope":"read"
-}
+[{"id":2,"username":"admin","password":"secret2","authorities":["ROLE_ADMIN"]},{"id":1,"username":"john","password":"12345","authorities":["ROLE_USER"]}]
 ```
 
-##### Create a postman test to verify password grant request
-I recommend writing  the Postman test   to actually verify the 200 http status return code
-
-see https://learning.postman.com/docs/writing-scripts/test-scripts/
+##### Add a Web Test for the User Controller GET /users endpoint
 ```
-pm.test("Expecting Status code of 200, was "+ pm.response.code, function () {
-    pm.response.to.have.status(200);
-});
-```
-##### use postman to extract tokens for subsequent postman request 
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
+public class UserControllerTest {
 
-it's possible to use postman to extract the values of the access_token and refresh_token to make it easier to use on subsequent requests e.g a refesh_token request
+    @LocalServerPort
+    private int port;
 
-see https://learning.postman.com/docs/sending-requests/variables/ 
-```
+    @Autowired
+    private TestRestTemplate restTemplate;
 
-pm.test("save tokens", function () {
-    var jsonData = pm.response.json();
-    console.log("Saving access_token value to 'access_token' environmental variable: " + jsonData.access_token)
-    pm.environment.set("access_token", jsonData.access_token);
-    pm.environment.set("refresh_token", jsonData.refresh_token);
-});
-```
-
-##### enable symetric key JWT - see section 15.1.2
-see https://livebook.manning.com/book/spring-security-in-action/chapter-15/v-7/22
-```
-public class AuthServerConfig
-  extends AuthorizationServerConfigurerAdapter {
-
-@Value("${jwt.key}")
-  private String jwtKey;
- 
-
-@Override
-  public void configure(
-    AuthorizationServerEndpointsConfigurer endpoints) {
-      endpoints
-        .authenticationManager(authenticationManager)
-        .tokenStore(tokenStore())
-        .accessTokenConverter(
-           jwtAccessTokenConverter());
-  }
- 
-  @Bean
-  public TokenStore tokenStore() {
-    return new JwtTokenStore(
-      jwtAccessTokenConverter());
-  }
- 
-  @Bean
-  public JwtAccessTokenConverter jwtAccessTokenConverter() {
-    JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
-    converter.setSigningKey(jwtKey);
-    return converter;
- }
-```
-
-##### add a symetric key value 
-https://livebook.manning.com/book/spring-security-in-action/chapter-15/v-7/38
-```
-#application.properties
-jwt.key=MjWP5L7CiD
-```
-
-##### try the password grant again to see if you get a JWT token
-```
-curl --location -u client:secret \
---request POST 'localhost:8080/oauth/token?grant_type=password&username=john&password=12345&scope=read' \
---header 'Content-Type: application/json'  
-``` 
-you should se JWT style tokens returned with the three dots in the access and refresh tokens
-```
-{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTg4MTEwMjgsInVzZXJfbmFtZSI6ImpvaG4iLCJhdXRob3JpdGllcyI6WyJST0xFX1VTRVIiXSwianRpIjoiYzdlZTcwMTYtYzE4OS00MTNlLTg5NjYtMzU0ZTM2Y2Y5NjZiIiwiY2xpZW50X2lkIjoiY2xpZW50Iiwic2NvcGUiOlsicmVhZCJdfQ.srE7t4IbawhlRrjOvkPnE-ZOws2a6Mj-VYTFT_vVUK4","token_type":"bearer","refresh_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX25hbWUiOiJqb2huIiwic2NvcGUiOlsicmVhZCJdLCJhdGkiOiJjN2VlNzAxNi1jMTg5LTQxM2UtODk2Ni0zNTRlMzZjZjk2NmIiLCJleHAiOjE2MDEzNTk4MjgsImF1dGhvcml0aWVzIjpbIlJPTEVfVVNFUiJdLCJqdGkiOiI3MWRkZDRiNi0zMzI5LTRkMmUtYTEwMi0yZDhlMmY1MjYyNWQiLCJjbGllbnRfaWQiOiJjbGllbnQifQ.eYQreV9u51Xqd9o6XoTQqPY5TfvGC3pBGhB8ggXGqws","expires_in":43199,"scope":"read","jti":"c7ee7016-c189-413e-8966-354e36cf966b"}
-```
-#### create  Asymmetric keys using keytool section 15.2.1
-see https://livebook.manning.com/book/spring-security-in-action/chapter-15/v-7/89
-
-##### replace Jwt Converter with  asymmetric implementation section 15.2.2
-see https://livebook.manning.com/book/spring-security-in-action/chapter-15/v-7/103
-```
-  @Bean
-    public JwtAccessTokenConverter jwtAccessTokenConverter() {
-        JwtAccessTokenConverter converter = new JwtAccessTokenConverter();
-
-        KeyStoreKeyFactory keyStoreKeyFactory =
-                new KeyStoreKeyFactory(
-                        new ClassPathResource(privateKey),
-                        password.toCharArray()
-                );
-
-        converter.setKeyPair(
-                keyStoreKeyFactory.getKeyPair(alias));
-
-        return converter;
+    @Test
+    public void usersListAsUser() throws Exception {
+        String jsonStr = this.restTemplate
+                .withBasicAuth("john", "12345")
+                .getForObject("http://localhost:" + port + "/users", String.class);
+        assertThat(jsonStr).contains("john");
     }
 ```
 
-
-##### try the password grant again to see if you get a aymetric key JWT token
-you should see the access_token is much larger than when using the symetric key
-```
-curl --location -u client:secret \
---request POST 'localhost:8080/oauth/token?grant_type=password&username=john&password=12345&scope=read' \
---header 'Content-Type: application/json'  
-``` 
-
-##### TODO craft an oauth refresh_token grant curl/postman request 
-hmm, getting a 500 internal server error 
+##### add a new POST /users endpoint to allow new users be added 
 ```
 
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseBody
+    public UserDto createUser(@RequestBody UserDto userDto) {
+        User user = convertToEntity(userDto);
+        user = userRepository.save(user);
+        return convertToDto(user);
+    }
+
+
+    private UserDto convertToDto(User user) {
+        return new UserDto(user);
+    }
+
+    private User convertToEntity(UserDto userDto) {
+        User user = new User();
+        user.setUsername(userDto.getUsername());
+        user.setPassword(this.passwordEncoder.encode(userDto.getPassword())); // TODO hash encode this later
+
+        List<Authority> authorities = userDto.getAuthorities()
+                .stream()
+                .map(a -> new Authority(a,user))
+                .collect(Collectors.toList());
+
+        user.setAuthorities(authorities);
+        userRepository.save(user);
+        return user;
+    }
 ```
-##### TODO craft a  /oauth/check_token curl/postman  request 
+##### add new tests for creating users in the controller
+```
+ @Test
+    public void createUser() throws Exception {
+        UserDto userDto = new UserDto();
+        userDto.setUsername("newuser");
+        userDto.setPassword("newpass");
+        userDto.setAuthorities(Arrays.asList("user", "admin"));
+        UserDto returnUserDto = this.restTemplate
+                .withBasicAuth("john", "12345")
+                .postForObject("http://localhost:" + port + "/users", userDto, UserDto.class);
+
+        System.out.println(returnUserDto);
+
+        assertThat(returnUserDto.getUsername()).isEqualTo(userDto.getUsername());
+    }
+```
+
+## Setup a DB Backed ClientDetailsService 
+##### Define CLIENT and GRANT tables
+- Clients represent applications which may want to connect to your service.   
+- We will define SQL tables to store the Client credentials and the zero or more Grants they may have
+- update the src/main/resources/schema.sql  to include the following DDL
+```
+drop table if exists GRANT;
+drop table if exists CLIENT;
+
+create table if not exists CLIENT
+(
+    ID INT auto_increment   primary key,
+    NAME  VARCHAR(255) not null,
+    SCOPE VARCHAR(10) not null default 'user',
+    SECRET VARCHAR(255) not null,
+    REDIRECT_URI VARCHAR(255) not null
+);
+
+
+create table if not exists GRANT
+(
+    ID INT auto_increment   primary key,
+    GRANT VARCHAR(50) not null,
+    CLIENT_ID INT not null,
+    constraint GRANT_CLIENT_ID_FK
+        foreign key (CLIENT_ID) references CLIENT (ID)
+);
+```
+
+##### Add Data for CLIENT and GRANT tables
+- append some DDL to the src/main/sesources/data.sql to setup credentials for a  client 
+- and add some of the standard OAUTH grants for that client
+```
+
+insert into CLIENT (ID, NAME, SECRET, REDIRECT_URI, SCOPE)
+values (1, 'client','secret' ,'http://localhost:8181/', 'read');
+
+insert into GRANT (CLIENT_ID, GRANT  ) values (1,  'authorization_code' );
+insert into GRANT (CLIENT_ID, GRANT  ) values (1,  'password' );
+insert into GRANT (CLIENT_ID, GRANT  ) values (1,  'client_credentials');
+insert into GRANT (CLIENT_ID, GRANT  ) values (1,  'refresh_token' );
+
+```
+
+##### verify CLIENT and GRANT tables
+- you can rerun your app to make sure the SQL is good
+- the app should fail to start if there is an error in the new SQL
+
+##### Create JPA entities for your CLIENT and GRANT tables
+this and the following steps are similar to creating a controller  
+##### Create a JPA Repository for the Client
+
+##### Add Tests for your Client JPA Repository   
+  
+##### Create a Client Controller with an GET /client endpoint to list all clients
+
+##### Update Client Controller with an POST /client endpoint to add a new client
+
+##### add Web tests for your controller
+
+
+
+
+# move to milestone 3
+##### create a test for your new JpaUserDetailsService
+ 
+```
+@SpringBootTest
+class JpaUserDetailsServiceTest {
+
+    @Resource(name = "jpaUserDetailsService")
+    private JpaUserDetailsService userDetailsService;
+
+    @Test
+    void loadUserByUsernameJohnIsFound() {
+        UserDetails userDetails = userDetailsService.loadUserByUsername("john");
+        assertThat(userDetails.getUsername()).isEqualTo("john");
+        assertThat(userDetails.isEnabled()).isTrue();
+    }
+}
+```
+
+##### replace the in-memory user details service with your new JPA backed userDetailsService
+- find the java configuration class where you defined a userDetailsService bean and delete it.
+- Your new JpaUserDetailsService will automatically be detected and used
+```
+// DELETE the following config bean
+@Override
+    @Bean
+    public UserDetailsService userDetailsService() {
+        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
+      
+```
+
+##### re-run all your unit tests
+- UserController
+  UserDtoUserController
+         UserDto
+- you should also be able to connect to the http://localhost:8080/alive endpoint using the same john:12345 credentials you used with the in-memory service
+ 
+
+##### Troubleshooting
+if you've haing problems authenticating usin yoour new JPA userdetailsService then I recommend temporarily enabling
+debug in the @EnableWebSecurity annotation e.g 
+```
+@Configuration
+@EnableWebSecurity(debug = true)
+public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
+
+```
+you can also enable debug logging in your application.properties
+```
+logging.level.org.springframework.security=debug
+```

@@ -1,4 +1,4 @@
-package com.manning.ssia.ssiamilestone.config;
+package com.manning.ssia.milestone.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

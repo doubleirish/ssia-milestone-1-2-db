@@ -1,4 +1,4 @@
-package com.manning.ssia.ssiamilestone;
+package com.manning.ssia.milestone;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

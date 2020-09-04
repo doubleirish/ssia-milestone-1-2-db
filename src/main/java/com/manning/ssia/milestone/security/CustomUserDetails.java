@@ -1,7 +1,7 @@
-package com.manning.ssia.ssiamilestone.security;
+package com.manning.ssia.milestone.security;
 
-import com.manning.ssia.ssiamilestone.jpa.Authority;
-import com.manning.ssia.ssiamilestone.jpa.User;
+import com.manning.ssia.milestone.jpa.Authority;
+import com.manning.ssia.milestone.jpa.User;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;

@@ -1,4 +1,4 @@
-package com.manning.ssia.ssiamilestone.security;
+package com.manning.ssia.milestone.security;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

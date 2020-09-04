@@ -1,4 +1,4 @@
-package com.manning.ssia.ssiamilestone.jpa;
+package com.manning.ssia.milestone.jpa;
 
 
 import org.junit.jupiter.api.Test;

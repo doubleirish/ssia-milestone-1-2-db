@@ -1,8 +1,8 @@
-package com.manning.ssia.ssiamilestone.web;
+package com.manning.ssia.milestone.controller;
 
-import com.manning.ssia.ssiamilestone.jpa.Authority;
-import com.manning.ssia.ssiamilestone.jpa.User;
-import com.manning.ssia.ssiamilestone.jpa.UserRepository;
+import com.manning.ssia.milestone.jpa.Authority;
+import com.manning.ssia.milestone.jpa.User;
+import com.manning.ssia.milestone.jpa.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
