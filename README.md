@@ -511,58 +511,15 @@ insert into GRANT (CLIENT_ID, GRANT  ) values (1,  'refresh_token' );
 
 ##### Create JPA entities for your CLIENT and GRANT tables
 this and the following steps are similar to creating a controller  
-##### Create a JPA Repository for the Client
-
-##### Add Tests for your Client JPA Repository   
-  
-##### Create a Client Controller with an GET /client endpoint to list all clients
-
-##### Update Client Controller with an POST /client endpoint to add a new client
-
-##### add Web tests for your controller
-
-
-
-
-# move to milestone 3
-##### create a test for your new JpaUserDetailsService
- 
-```
-@SpringBootTest
-class JpaUserDetailsServiceTest {
-
-    @Resource(name = "jpaUserDetailsService")
-    private JpaUserDetailsService userDetailsService;
-
-    @Test
-    void loadUserByUsernameJohnIsFound() {
-        UserDetails userDetails = userDetailsService.loadUserByUsername("john");
-        assertThat(userDetails.getUsername()).isEqualTo("john");
-        assertThat(userDetails.isEnabled()).isTrue();
-    }
-}
-```
-
-##### replace the in-memory user details service with your new JPA backed userDetailsService
-- find the java configuration class where you defined a userDetailsService bean and delete it.
-- Your new JpaUserDetailsService will automatically be detected and used
-```
-// DELETE the following config bean
-@Override
-    @Bean
-    public UserDetailsService userDetailsService() {
-        InMemoryUserDetailsManager userDetailsService = new InMemoryUserDetailsManager();
-      
-```
-
-##### re-run all your unit tests
-- UserController
-  UserDtoUserController
-         UserDto
-- you should also be able to connect to the http://localhost:8080/alive endpoint using the same john:12345 credentials you used with the in-memory service
+- Create a JPA Repository for the Client
+- Add Tests for your Client JPA Repository   
+- Create a Client Controller with an GET /client endpoint to list all clients
+- Update Client Controller with an POST /client endpoint to add a new client
+- add Web tests for your controller
+- re-run all your unit tests
  
 
-##### Troubleshooting
+# Troubleshooting
 if you've haing problems authenticating usin yoour new JPA userdetailsService then I recommend temporarily enabling
 debug in the @EnableWebSecurity annotation e.g 
 ```
