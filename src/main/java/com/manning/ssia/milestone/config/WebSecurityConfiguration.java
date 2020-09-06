@@ -12,7 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 //
 // @Order(-5001)
 @Configuration
-@EnableWebSecurity(debug = true)
+@EnableWebSecurity(debug = false) // never run debug=true in production
 public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
 
 
@@ -38,6 +38,9 @@ public class WebSecurityConfiguration extends WebSecurityConfigurerAdapter {
         http.csrf().disable();
         http
                 .authorizeRequests()
+               // .mvcMatchers("/users").permitAll()
+                .antMatchers("/users/**").permitAll()
+                .antMatchers("/clients/**").permitAll()
                 .anyRequest()
                 .authenticated()
                 .and()

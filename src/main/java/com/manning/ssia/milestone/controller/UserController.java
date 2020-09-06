@@ -48,13 +48,11 @@ public class UserController {
     }
 
 
-    @GetMapping("/{id}")
+    @GetMapping("{id}")
     public ResponseEntity<UserDto> userById(@PathVariable("id") Integer id) {
         Optional<User> optUser = userRepository.findById(id);
-        if (optUser.isPresent()) {
-            return new ResponseEntity<>(convertToDto(optUser.get()), HttpStatus.OK);
-        }
-        return new ResponseEntity<>(null, HttpStatus.NOT_FOUND);
+        return optUser.map(user -> new ResponseEntity<>(convertToDto(user), HttpStatus.OK))
+                .orElseGet(() -> new ResponseEntity<>(null, HttpStatus.NOT_FOUND));
     }
 
 
